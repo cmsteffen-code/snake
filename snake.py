@@ -64,6 +64,12 @@ class SnakeGame:
         ):
             self.game_over = True
 
+    def _check_shrink(self):
+        """Check to see if the snake has shrunk."""
+        if random.randint(1,self.perimeter * 2) <= self.snake_length:
+            # Shrink the snake sometimes.
+            self.snake_length -= 1
+
     def _draw_arena(self):
         """Draw the initial game screen."""
         self.stdscr.clear()
@@ -169,9 +175,6 @@ class SnakeGame:
         # Move the snake's head.
         self.snake.append((row, col))
         self._draw_object((row, col), self.color_white)
-        # Trim the snake's tail.\
-        while len(self.snake) > self.snake_length:
-            self._draw_object(self.snake.pop(0))
 
     def _parse_input(self):
         """Receive and process user input."""
@@ -224,6 +227,11 @@ class SnakeGame:
         # Draw the snake.
         self._draw_object(self.snake, self.color_white)
 
+    def _trim_tail(self):
+        """Trim the snake's tail."""
+        while len(self.snake) > self.snake_length:
+            self._draw_object(self.snake.pop(0))
+
     def _update_score(self):
         """Increment the user's score."""
         points = 10 / self.perimeter * self.snake_length
@@ -246,8 +254,10 @@ class SnakeGame:
                 self.stdscr.refresh()
                 self._parse_input()
                 self._move_snake()
-                self._check_loss_conditions()
                 self._eat_food()
+                self._check_shrink()
+                self._trim_tail()
+                self._check_loss_conditions()
                 self._update_score()
             except IndexError:
                 self.game_over = True
@@ -264,15 +274,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Eat food, stay alive, get the high score!",
         epilog=textwrap.dedent("""\
-        Eat food to grow or shrink the snake.
+        Eat food to stay alive and grow longer.
         Gain points for survival.
-        Don't hit the borders or eat yourself!
+        Don't hit the borders, starve to death, or eat yourself!
 
         Food Types:
         - White: Grow by 1
         - Green: Grow by 3
         - Gold:  Grow by 9
-        - Red:   Shrink by 3
+        - Red:   Poison! Shrink by 3
         """),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
