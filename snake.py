@@ -3,13 +3,15 @@
 
 import curses
 import random
+import argparse
+import textwrap
 from curses import textpad
 
 
 class SnakeGame:
     """Implement Snake in Curses."""
 
-    def __init__(self, stdscr):
+    def __init__(self, stdscr, borderless=False):
         """Spawn Snake 2."""
         # Important variables.
         self.score = 0.0
@@ -19,6 +21,7 @@ class SnakeGame:
         self.stdscr = stdscr
         self.snake_length = 3
         self.game_over = False
+        self.borderless = borderless
         self.direction = curses.KEY_RIGHT
         # Define the arena boundaries.
         self.max_rows, self.max_cols = self.stdscr.getmaxyx()
@@ -29,9 +32,9 @@ class SnakeGame:
         self.row_borders = {top_border, bottom_border}
         self.col_borders = {left_border, right_border}
         padding = 2 * self.padding + 2
-        arena_rows = self.max_rows - padding
-        arena_cols = self.max_cols - padding
-        self.perimeter = 2 * (arena_rows + arena_cols)
+        self.arena_rows = self.max_rows - padding
+        self.arena_cols = self.max_cols - padding
+        self.perimeter = 2 * (self.arena_rows + self.arena_cols)
         # Curses configuration.
         curses.curs_set(0)
         self.stdscr.nodelay(1)
@@ -96,9 +99,12 @@ class SnakeGame:
         while new_food in self.snake or new_food in self.food:
             new_food = self._random_coords()
         index = (
-            0 if not special
-            else 1 if random.randint(1, 100) > 33
-            else 2 if random.randint(1, 100) > 33
+            0
+            if not special
+            else 1
+            if random.randint(1, 100) > 33
+            else 2
+            if random.randint(1, 100) > 33
             else 3
         )
         self.food[new_food] = [1, -3, 3, 9][index]
@@ -115,7 +121,7 @@ class SnakeGame:
         snake_head = self.snake[-1]
         if snake_head in self.food:
             value = self.food[snake_head]
-            del(self.food[snake_head])
+            del self.food[snake_head]
             self.snake_length += value
             self.score += self.snake_length
             self._drop_food()
@@ -150,11 +156,16 @@ class SnakeGame:
         # Calculate the new head position.
         (row, col) = self.snake[-1]
         if self.direction in [curses.KEY_UP, curses.KEY_DOWN]:
-            row += 1 if self.direction == curses.KEY_DOWN else -1
+            inc = 1 if self.direction == curses.KEY_DOWN else -1
+            row += inc
             self.stdscr.timeout(150)
         elif self.direction in [curses.KEY_LEFT, curses.KEY_RIGHT]:
-            col += 1 if self.direction == curses.KEY_RIGHT else -1
+            inc = 1 if self.direction == curses.KEY_RIGHT else -1
+            col += inc
             self.stdscr.timeout(100)
+        if self.borderless:
+            row -= (inc * self.arena_rows) if row in self.row_borders else 0
+            col -= (inc * self.arena_cols) if col in self.col_borders else 0
         # Move the snake's head.
         self.snake.append((row, col))
         self._draw_object((row, col), self.color_white)
@@ -245,9 +256,31 @@ class SnakeGame:
 
 def main(stdscr):
     """Run the Snake game."""
-    snake = SnakeGame(stdscr)
+    snake = SnakeGame(stdscr, args.borderless)
     snake.run()
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Eat food, stay alive, get the high score!",
+        epilog=textwrap.dedent("""\
+        Eat food to grow or shrink the snake.
+        Gain points for survival.
+        Don't hit the borders or eat yourself!
+
+        Food Types:
+        - White: Grow by 1
+        - Green: Grow by 3
+        - Gold:  Grow by 9
+        - Red:   Shrink by 3
+        """),
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "-b",
+        "--borderless",
+        action="store_true",
+        help="enable wrap-around at arena borders"
+    )
+    args = parser.parse_args()
     curses.wrapper(main)
