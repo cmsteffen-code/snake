@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Snake, implemented with curses."""
 
-import curses
-import random
+# TODO: Adjust the food values based on the size of the board.
+
 import argparse
+import curses
+import math
+import random
 import textwrap
 from curses import textpad
 
@@ -49,6 +52,8 @@ class SnakeGame:
         self.color_white = 4
         curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_BLACK)
         self.color_default = 5
+        curses.init_pair(6, curses.COLOR_BLACK, curses.COLOR_BLUE)
+        self.color_blue = 6
         # Prepare the arena.
         self._draw_arena()
         self._spawn_snake()
@@ -66,7 +71,10 @@ class SnakeGame:
 
     def _check_shrink(self):
         """Check to see if the snake has shrunk."""
-        if random.randint(1,self.perimeter * 2) <= self.snake_length:
+        if (
+            random.randint(1, int(math.sqrt(self.perimeter) * 10))
+            <= self.snake_length
+        ):
             # Shrink the snake sometimes.
             self.snake_length -= 1
 
@@ -115,7 +123,7 @@ class SnakeGame:
         )
         self.food[new_food] = [1, -3, 3, 9][index]
         food_color = [
-            self.color_white,
+            self.color_blue,
             self.color_red,
             self.color_green,
             self.color_yellow,
@@ -273,24 +281,26 @@ def main(stdscr):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Eat food, stay alive, get the high score!",
-        epilog=textwrap.dedent("""\
+        epilog=textwrap.dedent(
+            """\
         Eat food to stay alive and grow longer.
         Gain points for survival.
         Don't hit the borders, starve to death, or eat yourself!
 
         Food Types:
-        - White: Grow by 1
+        - Blue:  Grow by 1
         - Green: Grow by 3
         - Gold:  Grow by 9
         - Red:   Poison! Shrink by 3
-        """),
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        """
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "-b",
         "--borderless",
         action="store_true",
-        help="enable wrap-around at arena borders"
+        help="enable wrap-around at arena borders",
     )
     args = parser.parse_args()
     curses.wrapper(main)
