@@ -15,7 +15,7 @@ class SnakeGame:
     """Implement Snake in Curses."""
 
     def __init__(self, stdscr, borderless=False):
-        """Spawn Snake 2."""
+        """Spawn Snake."""
         # Important variables.
         self.score = 0.0
         self.int_score = -1
@@ -28,16 +28,17 @@ class SnakeGame:
         self.direction = curses.KEY_RIGHT
         # Define the arena boundaries.
         self.max_rows, self.max_cols = self.stdscr.getmaxyx()
+        padding = 2 * self.padding + 2
+        self.arena_rows = self.max_rows - padding
+        self.arena_cols = self.max_cols - padding
+        self.perimeter = 2 * (self.arena_rows + self.arena_cols)
+        self.snake_length = self._multiply_growth(self.snake_length)
         top_border = self.padding
         left_border = self.padding
         bottom_border = self.max_rows - (self.padding + 1)
         right_border = self.max_cols - (self.padding + 1)
         self.row_borders = {top_border, bottom_border}
         self.col_borders = {left_border, right_border}
-        padding = 2 * self.padding + 2
-        self.arena_rows = self.max_rows - padding
-        self.arena_cols = self.max_cols - padding
-        self.perimeter = 2 * (self.arena_rows + self.arena_cols)
         # Curses configuration.
         curses.curs_set(0)
         self.stdscr.nodelay(1)
@@ -59,6 +60,16 @@ class SnakeGame:
         self._spawn_snake()
         self._drop_food()
 
+    def _multiply_growth(self, units):
+        """Calculate the growth multiplier."""
+        polarity = -1 if abs(units) != units else 1
+        units = abs(units)
+        inverse_curve = 1.0 - (1.0 / self.snake_length)
+        scale_multiplier = math.sqrt(self.perimeter / 4)
+        return polarity * max(
+            [int(units * scale_multiplier * inverse_curve), 1]
+        )
+
     def _check_loss_conditions(self):
         """Check whether we've lost."""
         (row, col) = self.snake[-1]
@@ -71,12 +82,9 @@ class SnakeGame:
 
     def _check_shrink(self):
         """Check to see if the snake has shrunk."""
-        if (
-            random.randint(1, int(math.sqrt(self.perimeter) * 10))
-            <= self.snake_length
-        ):
+        if random.randint(1, self.perimeter * 2) <= self.snake_length:
             # Shrink the snake sometimes.
-            self.snake_length -= 1
+            self.snake_length -= self._multiply_growth(0.25)
 
     def _draw_arena(self):
         """Draw the initial game screen."""
@@ -121,7 +129,7 @@ class SnakeGame:
             if random.randint(1, 100) > 33
             else 3
         )
-        self.food[new_food] = [1, -3, 3, 9][index]
+        self.food[new_food] = self._multiply_growth([1, -1, 3, 9][index])
         food_color = [
             self.color_blue,
             self.color_red,
