@@ -64,11 +64,15 @@ class SnakeGame:
         """Calculate the growth multiplier."""
         polarity = -1 if abs(units) != units else 1
         units = abs(units)
-        inverse_curve = 1.0 - (1.0 / self.snake_length)
-        scale_multiplier = math.sqrt(self.perimeter / 4)
-        return polarity * max(
-            [int(units * scale_multiplier * inverse_curve), 1]
-        )
+        try:
+            inverse_curve = 1.0 - (1.0 / self.snake_length)
+            scale_multiplier = math.sqrt(self.perimeter / 4)
+            return polarity * max(
+                [int(units * scale_multiplier * inverse_curve), 1]
+            )
+        except ZeroDivisionError:
+            self.game_over = True
+            return 0
 
     def _check_loss_conditions(self):
         """Check whether we've lost."""
